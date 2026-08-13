@@ -1,0 +1,5 @@
+assets/morphs/*.png
+.tmp-preview/
+Thumbs.db
+Desktop.ini
+.DS_Store
