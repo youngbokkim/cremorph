@@ -1,5 +1,5 @@
-import { analyzePixels, identifyMorph, morphScore } from "./engine.js";
-import { buildCatalog } from "./library.js";
+import { analyzePixels, identifyMorph, morphScore } from "./engine.js?v=8";
+import { buildCatalog } from "./library.js?v=8";
 
 const MODEL_ID = "Xenova/clip-vit-base-patch32";
 const LIB_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
@@ -208,7 +208,7 @@ export async function identifyImage(image, { onStatus } = {}) {
   try {
     onStatus?.("CLIP 딥러닝 모델을 준비하는 중…");
     const catalog = await embedGallery(onStatus);
-    onStatus?.("올린 사진을 도감·내 참고 사진과 비교하는 중…");
+    onStatus?.("올린 사진을 도감·공유 참고 사진과 비교하는 중…");
     const query = await embed(image, onStatus);
 
     const scored = catalog.map((m) => {

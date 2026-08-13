@@ -1,4 +1,4 @@
-import { MORPHS, GENE_META, TRAIT_META, getMorph, allAliases, normalize } from "./morphs.js";
+import { MORPHS, GENE_META, TRAIT_META, getMorph, allAliases, normalize } from "./morphs.js?v=8";
 
 const GENE_KEYS = Object.keys(GENE_META);
 const TRAIT_KEYS = Object.keys(TRAIT_META);

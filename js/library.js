@@ -1,5 +1,14 @@
-import { MORPHS, getMorph, normalize } from "./morphs.js";
-import { analyzePixels } from "./engine.js";
+import { MORPHS, getMorph, normalize } from "./morphs.js?v=8";
+import { analyzePixels } from "./engine.js?v=8";
+import {
+  githubUploadPhoto,
+  githubDeletePhoto,
+  hasLocalApi,
+  getGithubToken,
+  GH_OWNER,
+  GH_REPO,
+  GH_BRANCH,
+} from "./github-store.js?v=8";
 
 const DB_NAME = "crehooni-library";
 const STORE = "photos";
@@ -53,9 +62,9 @@ function makeUserMorph(name, image, signature) {
     nameEn: "Custom",
     category: "custom",
     inheritance: "unknown",
-    inheritanceKo: "내가 추가한 참고 사진",
-    description: "사용자가 도감에 올린 참고 개체입니다. 모프 분석 때 이 사진과도 비교합니다.",
-    look: "사용자 추가",
+    inheritanceKo: "공유된 참고 사진",
+    description: "서버 도감에 올라간 참고 개체입니다. 모프 분석 때 이 사진과도 비교합니다.",
+    look: "공유 참고",
     image,
     aliases: [name.trim()],
     genes: {},
@@ -65,13 +74,74 @@ function makeUserMorph(name, image, signature) {
   };
 }
 
-export async function listCustomPhotos() {
+function withImage(photo) {
+  return { ...photo, image: photo.image || photo.file };
+}
+
+async function listIndexedPhotos() {
+  try {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(STORE, "readonly").objectStore(STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function saveIndexedPhoto(photo) {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(STORE, "readonly").objectStore(STORE).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
+  const tx = db.transaction(STORE, "readwrite");
+  tx.objectStore(STORE).put(photo);
+  await txDone(tx);
+}
+
+async function deleteIndexedPhoto(id) {
+  const db = await openDb();
+  const tx = db.transaction(STORE, "readwrite");
+  tx.objectStore(STORE).delete(id);
+  await txDone(tx);
+}
+
+export async function loadSharedPhotos() {
+  const rawBase = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}`;
+  const localFirst = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || (await hasLocalApi());
+  const urls = localFirst
+    ? [`data/library.json?t=${Date.now()}`, `${rawBase}/data/library.json?t=${Date.now()}`]
+    : [`${rawBase}/data/library.json?t=${Date.now()}`, `data/library.json?t=${Date.now()}`];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const fromRaw = url.startsWith("https://raw.githubusercontent.com");
+      return (data.photos || []).map((p) => {
+        const file = p.file || p.image;
+        const image =
+          file && !String(file).startsWith("data:") && !String(file).startsWith("http")
+            ? fromRaw
+              ? `${rawBase}/${file}`
+              : file
+            : file;
+        return { ...p, file, image };
+      });
+    } catch {
+      /* try next source */
+    }
+  }
+  return [];
+}
+
+export async function listCustomPhotos() {
+  const shared = await loadSharedPhotos();
+  const local = (await listIndexedPhotos()).map(withImage);
+  const byId = new Map();
+  for (const p of local) byId.set(p.id, { ...p, localOnly: !p.file });
+  for (const p of shared) byId.set(p.id, { ...p, shared: true, localOnly: false });
+  return [...byId.values()];
 }
 
 export async function addCustomPhoto({ name, image, signature }) {
@@ -83,18 +153,62 @@ export async function addCustomPhoto({ name, image, signature }) {
     signature: signature || null,
     addedAt: Date.now(),
   };
-  const db = await openDb();
-  const tx = db.transaction(STORE, "readwrite");
-  tx.objectStore(STORE).put(photo);
-  await txDone(tx);
-  return photo;
+
+  if (await hasLocalApi()) {
+    const res = await fetch("/api/photos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(photo),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "서버에 올리지 못했습니다");
+    return withImage({ ...data, shared: true });
+  }
+
+  if (getGithubToken()) {
+    return withImage(await githubUploadPhoto(photo));
+  }
+
+  await saveIndexedPhoto(photo);
+  return { ...photo, localOnly: true };
 }
 
 export async function deleteCustomPhoto(id) {
-  const db = await openDb();
-  const tx = db.transaction(STORE, "readwrite");
-  tx.objectStore(STORE).delete(id);
-  await txDone(tx);
+  const photos = await listCustomPhotos();
+  const photo = photos.find((p) => p.id === id);
+  if (await hasLocalApi()) {
+    const res = await fetch(`/api/photos/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("서버에서 삭제하지 못했습니다");
+  } else if (photo && !photo.localOnly) {
+    if (!getGithubToken()) throw new Error("공유 사진을 지우려면 GitHub 토큰이 필요합니다");
+    await githubDeletePhoto(photo);
+  }
+  await deleteIndexedPhoto(id);
+}
+
+export async function migrateLocalPhotosToServer() {
+  if (!(await hasLocalApi()) && !getGithubToken()) return 0;
+  const local = (await listIndexedPhotos()).filter((p) => p.image && String(p.image).startsWith("data:"));
+  let moved = 0;
+  for (const p of local) {
+    try {
+      if (await hasLocalApi()) {
+        const res = await fetch("/api/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(p),
+        });
+        if (!res.ok) continue;
+      } else {
+        await githubUploadPhoto(p);
+      }
+      await deleteIndexedPhoto(p.id);
+      moved += 1;
+    } catch (err) {
+      console.warn("migrate failed", p.id, err);
+    }
+  }
+  return moved;
 }
 
 export async function buildCatalog() {

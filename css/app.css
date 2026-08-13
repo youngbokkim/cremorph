@@ -618,6 +618,23 @@ nav.tabs {
   background: #e8d9b8;
 }
 
+.share-setup {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.share-setup summary {
+  cursor: pointer;
+  color: var(--cream);
+  font-weight: 600;
+}
+.share-setup .field {
+  margin-top: 12px;
+}
+
 @media (max-width: 860px) {
   .top { flex-direction: column; align-items: flex-start; }
   .grid-2, .parents, .add-grid { grid-template-columns: 1fr; }

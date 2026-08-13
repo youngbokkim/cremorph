@@ -1,6 +1,6 @@
-import { MORPHS, getMorph } from "./morphs.js";
-import { breed, morphToProfile, answerQuestion } from "./engine.js";
-import { identifyImage, warmupVision, forgetCustomEmbed } from "./vision.js";
+import { MORPHS, getMorph } from "./morphs.js?v=8";
+import { breed, morphToProfile, answerQuestion } from "./engine.js?v=8";
+import { identifyImage, warmupVision, forgetCustomEmbed } from "./vision.js?v=8";
 import {
   addCustomPhoto,
   deleteCustomPhoto,
@@ -8,7 +8,9 @@ import {
   signatureFromImage,
   buildCatalog,
   matchMorphByName,
-} from "./library.js";
+  migrateLocalPhotosToServer,
+} from "./library.js?v=8";
+import { hasLocalApi, getGithubToken, setGithubToken } from "./github-store.js?v=8";
 
 const $ = (id) => document.getElementById(id);
 
@@ -80,7 +82,7 @@ $("lib-name").addEventListener("input", () => {
 
 function morphHero(morph, kicker, extra = "") {
   const extraN = (morph.extraIds || []).length;
-  const extraBadge = extraN ? `<span class="badge">내 참고 ${extraN}장</span>` : "";
+  const extraBadge = extraN ? `<span class="badge">공유 참고 ${extraN}장</span>` : "";
   return `
     <article class="morph-hero">
       <img src="${morph.image}" alt="${morph.nameKo}" />
@@ -103,14 +105,14 @@ function renderIdentify(id) {
   const morph = id.top.morph;
   const method =
     id.source === "clip"
-      ? `<p class="method-note">CLIP으로 기본 도감과 내가 추가한 참고 사진을 함께 비교했습니다. 사진은 이 브라우저에만 있습니다.</p>`
+      ? `<p class="method-note">CLIP으로 기본 도감과 공유된 참고 사진을 함께 비교했습니다.</p>`
       : `<p class="method-note">모델 로드에 실패해 색 통계로 추정했습니다. ${id.error ? `원인: ${id.error}` : ""}</p>`;
   const warn = id.lowConfidence
     ? `<div class="warn">후보 점수가 낮습니다. 참고 사진을 더 넣으면 구분력이 좋아집니다.</div>`
     : "";
   const extras =
     morph.extraImages?.length
-      ? `<div class="kicker" style="margin:12px 0 8px">이 모프의 내 참고 사진</div>
+      ? `<div class="kicker" style="margin:12px 0 8px">이 모프의 공유 참고 사진</div>
          <div class="thumb-row">${morph.extraImages.map((src) => `<img src="${src}" alt="" />`).join("")}</div>`
       : "";
   const alts = id.all
@@ -143,7 +145,7 @@ $("id-run").addEventListener("click", async () => {
   identifying = true;
   $("id-wait").classList.add("show");
   $("id-run").disabled = true;
-  $("id-wait-text").textContent = "CLIP으로 도감·내 참고 사진과 비교하는 중…";
+  $("id-wait-text").textContent = "CLIP으로 도감·공유 참고 사진과 비교하는 중…";
   try {
     const id = await identifyImage(idImage, {
       onStatus: (msg) => {
@@ -163,7 +165,7 @@ $("id-run").addEventListener("click", async () => {
 function fillSelects(catalogMorphs = MORPHS) {
   const html = catalogMorphs
     .filter((m) => m.category !== "het")
-    .map((m) => `<option value="${m.id}">${m.nameKo}${m.custom ? " (내 추가)" : ""} · ${m.nameEn}</option>`)
+    .map((m) => `<option value="${m.id}">${m.nameKo}${m.custom ? " (공유)" : ""} · ${m.nameEn}</option>`)
     .join("");
   $("parent-a").innerHTML = html;
   $("parent-b").innerHTML = html;
@@ -307,12 +309,13 @@ function renderLibList(photos) {
     .map((p) => {
       const linked = matchMorphByName(p.name);
       const tag = linked ? linked.nameKo : "새 모프";
+      const where = p.localOnly ? "이 브라우저에만 저장됨" : "공유 도감";
       return `
         <article class="lib-item">
           <img src="${p.image}" alt="${p.name}" />
           <div>
             <strong>${p.name}</strong>
-            <span>${tag} 분석에 포함됨</span>
+            <span>${tag} · ${where}</span>
           </div>
           <button type="button" class="btn ghost tiny" data-del="${p.id}">삭제</button>
         </article>`;
@@ -328,7 +331,7 @@ function renderGallery(morphs, photos) {
   <article class="g-card" data-id="${m.id}">
     <img src="${m.image}" alt="${m.nameKo}" />
     <div class="pad">
-      <div class="en">${m.nameEn}${m.extraIds?.length ? ` · 내 사진 ${m.extraIds.length}` : ""}</div>
+      <div class="en">${m.nameEn}${m.extraIds?.length ? ` · 공유 ${m.extraIds.length}` : ""}</div>
       <h3>${m.nameKo}</h3>
       <p>${m.look}</p>
     </div>
@@ -342,7 +345,7 @@ function renderGallery(morphs, photos) {
   <article class="g-card custom" data-photo="${p.id}">
     <img src="${p.image}" alt="${p.name}" />
     <div class="pad">
-      <div class="en">내가 추가</div>
+      <div class="en">${p.localOnly ? "이 브라우저만" : "공유 참고"}</div>
       <h3>${p.name}</h3>
       <p>모프 분석 비교용 참고 사진</p>
     </div>
@@ -358,13 +361,13 @@ $("gallery-grid").addEventListener("click", (e) => {
   if (!card) return;
   if (card.dataset.photo) {
     const m = catalogCache.find((x) => (x.extraIds || []).includes("custom:" + card.dataset.photo));
-    const title = m?.nameKo || "내 참고 사진";
+    const title = m?.nameKo || "공유 참고 사진";
     $("modal-card").innerHTML = `
       <img src="${card.querySelector("img").src}" alt="${title}" />
       <div class="pad">
-        <div class="kicker">내가 추가한 참고 사진</div>
+        <div class="kicker">공유된 참고 사진</div>
         <h3>${title}</h3>
-        <p style="margin:12px 0;line-height:1.6">이 사진은 모프 분석 때 도감과 함께 비교됩니다.</p>
+        <p style="margin:12px 0;line-height:1.6">이 사진은 모든 방문자의 모프 분석 때 도감과 함께 비교됩니다.</p>
         <button class="btn ghost" id="close-modal" style="margin-top:16px">닫기</button>
       </div>`;
     $("modal").classList.add("open");
@@ -383,7 +386,7 @@ $("gallery-grid").addEventListener("click", (e) => {
       <div class="badge-row">
         <span class="badge">${m.look}</span>
       </div>
-      ${extraImgs ? `<div class="kicker" style="margin:14px 0 8px">내 참고 사진</div><div class="thumb-row">${extraImgs}</div>` : ""}
+      ${extraImgs ? `<div class="kicker" style="margin:14px 0 8px">공유 참고 사진</div><div class="thumb-row">${extraImgs}</div>` : ""}
       <button class="btn ghost" id="close-modal" style="margin-top:16px">닫기</button>
     </div>`;
   $("modal").classList.add("open");
@@ -397,17 +400,21 @@ $("lib-add").addEventListener("click", async () => {
   const name = $("lib-name").value.trim();
   if (!libFile || !name) return;
   $("lib-add").disabled = true;
-  $("lib-status").textContent = "사진을 저장하고 분석용으로 넣는 중…";
+  $("lib-status").textContent = "공유 도감에 올리는 중… 배포까지 1~2분 걸릴 수 있습니다.";
   try {
     const { dataUrl, img } = await fileToDataUrl(libFile);
     const signature = signatureFromImage(img);
-    await addCustomPhoto({ name, image: dataUrl, signature });
+    const saved = await addCustomPhoto({ name, image: dataUrl, signature });
     await refreshLibrary();
     warmupVision(() => {});
     const linked = matchMorphByName(name);
-    $("lib-status").textContent = linked
-      ? `「${linked.nameKo}」 참고 사진으로 추가했습니다. 이제 모프 분석에 포함됩니다.`
-      : `「${name}」을 새 참고 모프로 추가했습니다. 이제 모프 분석에 포함됩니다.`;
+    if (saved.localOnly) {
+      $("lib-status").textContent = `「${name}」을 이 브라우저에만 저장했습니다. 모든 사람과 공유하려면 아래 GitHub 토큰을 저장하거나 start.bat 서버를 켜 주세요.`;
+    } else {
+      $("lib-status").textContent = linked
+        ? `「${linked.nameKo}」 참고 사진을 공유 도감에 올렸습니다. 잠시 후 모든 방문자가 봅니다.`
+        : `「${name}」을 새 참고 모프로 공유 도감에 올렸습니다. 잠시 후 모든 방문자가 봅니다.`;
+    }
     libFile = null;
     $("lib-file").value = "";
     $("lib-name").value = "";
@@ -415,7 +422,9 @@ $("lib-add").addEventListener("click", async () => {
     $("lib-drop").classList.remove("has-img");
   } catch (err) {
     console.warn(err);
-    $("lib-status").textContent = "추가에 실패했습니다. 다른 사진으로 다시 시도해 주세요.";
+    $("lib-status").textContent = err?.message
+      ? `추가에 실패했습니다. ${err.message}`
+      : "추가에 실패했습니다. 다른 사진으로 다시 시도해 주세요.";
     $("lib-add").disabled = false;
   }
 });
@@ -424,9 +433,54 @@ $("lib-list").addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-del]");
   if (!btn) return;
   const id = btn.dataset.del;
-  await deleteCustomPhoto(id);
-  forgetCustomEmbed(id);
-  await refreshLibrary();
+  try {
+    await deleteCustomPhoto(id);
+    forgetCustomEmbed(id);
+    await refreshLibrary();
+  } catch (err) {
+    $("lib-status").textContent = err?.message || "삭제하지 못했습니다.";
+  }
 });
 
-refreshLibrary().catch((err) => console.warn("library load failed", err));
+async function setupShare() {
+  const local = await hasLocalApi();
+  const setup = $("share-setup");
+  if (local) {
+    setup.hidden = true;
+    $("lib-share-hint").textContent =
+      "사진을 올리면 이 서버를 통해 GitHub 공유 도감에 들어가고, 모든 방문자의 모프 분석에 쓰입니다. 기존 모프 이름이면 그 모프의 추가 예시로 붙습니다.";
+    return;
+  }
+  setup.hidden = false;
+  $("gh-token-status").textContent = getGithubToken()
+    ? "토큰이 이 기기에 저장되어 있습니다. 추가한 사진이 공유 도감에 올라갑니다."
+    : "토큰이 없으면 이 브라우저에만 저장됩니다.";
+}
+
+$("gh-token-save").addEventListener("click", async () => {
+  const value = $("gh-token").value.trim();
+  setGithubToken(value);
+  $("gh-token").value = "";
+  $("gh-token-status").textContent = value
+    ? "저장했습니다. 이제 올리는 사진이 공유됩니다."
+    : "토큰을 지웠습니다.";
+  if (!value) return;
+  const moved = await migrateLocalPhotosToServer();
+  if (moved) {
+    $("gh-token-status").textContent += ` 기존 사진 ${moved}장을 공유 도감으로 옮겼습니다.`;
+    await refreshLibrary();
+  }
+});
+
+(async () => {
+  try {
+    await setupShare();
+    const moved = await migrateLocalPhotosToServer();
+    await refreshLibrary();
+    if (moved) {
+      $("lib-status").textContent = `이 브라우저에만 있던 사진 ${moved}장을 공유 도감으로 옮겼습니다.`;
+    }
+  } catch (err) {
+    console.warn("library load failed", err);
+  }
+})();

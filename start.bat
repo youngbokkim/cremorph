@@ -1,3 +1,3 @@
 @echo off
 cd /d "%~dp0"
-py -m http.server 5173
+py server.py
