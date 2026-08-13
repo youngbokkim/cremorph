@@ -1,5 +1,5 @@
-import { MORPHS } from "./morphs.js";
 import { analyzePixels, identifyMorph, morphScore } from "./engine.js";
+import { buildCatalog } from "./library.js";
 
 const MODEL_ID = "Xenova/clip-vit-base-patch32";
 const LIB_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
@@ -138,14 +138,30 @@ async function embed(source, onStatus) {
   return tensorToEmbed(output);
 }
 
+export function forgetCustomEmbed(photoId) {
+  galleryEmbeds.delete("custom:" + photoId);
+}
+
 async function embedGallery(onStatus) {
-  const morphs = MORPHS.filter((m) => m.category !== "het" && m.image);
-  for (let i = 0; i < morphs.length; i++) {
-    const morph = morphs[i];
-    if (galleryEmbeds.has(morph.id)) continue;
-    onStatus?.(`도감 사진 학습 중 ${i + 1}/${morphs.length} · ${morph.nameKo}`);
-    galleryEmbeds.set(morph.id, await embed(morph.image, onStatus));
+  const { morphs, photos } = await buildCatalog();
+  const jobs = [];
+  for (const morph of morphs) {
+    if (morph.image && !morph.custom && !galleryEmbeds.has(morph.id)) {
+      jobs.push({ key: morph.id, image: morph.image, label: morph.nameKo });
+    }
   }
+  for (const photo of photos) {
+    const key = "custom:" + photo.id;
+    if (!galleryEmbeds.has(key) && photo.image) {
+      jobs.push({ key, image: photo.image, label: photo.name });
+    }
+  }
+  for (let i = 0; i < jobs.length; i++) {
+    const job = jobs[i];
+    onStatus?.(`도감 사진 학습 중 ${i + 1}/${jobs.length} · ${job.label}`);
+    galleryEmbeds.set(job.key, await embed(job.image, onStatus));
+  }
+  return morphs;
 }
 
 function packResult(scored, source, extra = {}) {
@@ -173,24 +189,38 @@ export function warmupVision(onStatus) {
   });
 }
 
+function bestClip(morph, query) {
+  const keys = [];
+  if (!morph.custom) keys.push(morph.id);
+  for (const extra of morph.extraIds || []) keys.push(extra);
+  let best = 0;
+  for (const key of keys) {
+    const gallery = galleryEmbeds.get(key);
+    if (!gallery) continue;
+    best = Math.max(best, cosine(query, gallery));
+  }
+  return best;
+}
+
 export async function identifyImage(image, { onStatus } = {}) {
   const feat = analyzePixels(image);
 
   try {
     onStatus?.("CLIP 딥러닝 모델을 준비하는 중…");
-    await embedGallery(onStatus);
-    onStatus?.("올린 사진을 도감과 비교하는 중…");
+    const catalog = await embedGallery(onStatus);
+    onStatus?.("올린 사진을 도감·내 참고 사진과 비교하는 중…");
     const query = await embed(image, onStatus);
 
-    const scored = MORPHS.filter((m) => m.category !== "het").map((m) => {
-      const gallery = galleryEmbeds.get(m.id);
-      const clipSim = gallery ? cosine(query, gallery) : 0;
-      const colorSim = morphScore(feat, m);
+    const scored = catalog.map((m) => {
+      const clipSim = bestClip(m, query);
+      const colorSim = m.signature ? morphScore(feat, m) : 0;
+      const extraN = (m.extraIds || []).length;
       return {
         morph: m,
         clip: clipSim,
         color: colorSim,
         score: clipSim * 0.82 + colorSim * 0.18,
+        extraN,
       };
     });
 

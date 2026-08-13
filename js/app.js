@@ -1,14 +1,14 @@
 import { MORPHS, getMorph } from "./morphs.js";
+import { breed, morphToProfile, answerQuestion } from "./engine.js";
+import { identifyImage, warmupVision, forgetCustomEmbed } from "./vision.js";
 import {
-  analyzePixels,
-  gradeQuality,
-  estimatePrice,
-  formatWon,
-  breed,
-  morphToProfile,
-  answerQuestion,
-} from "./engine.js";
-import { identifyImage, warmupVision } from "./vision.js";
+  addCustomPhoto,
+  deleteCustomPhoto,
+  fileToDataUrl,
+  signatureFromImage,
+  buildCatalog,
+  matchMorphByName,
+} from "./library.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -30,6 +30,7 @@ function bindDrop(dropId, fileId, previewId, onReady) {
   const drop = $(dropId);
   const file = $(fileId);
   const preview = $(previewId);
+  if (!drop || !file) return;
 
   const load = (f) => {
     if (!f || !f.type.startsWith("image/")) return;
@@ -39,15 +40,13 @@ function bindDrop(dropId, fileId, previewId, onReady) {
       preview.src = url;
       preview.hidden = false;
       drop.classList.add("has-img");
-      onReady(img, url);
+      onReady(img, url, f);
     };
     img.src = url;
   };
 
   file.addEventListener("change", () => load(file.files[0]));
-  drop.addEventListener("dragover", (e) => {
-    e.preventDefault();
-  });
+  drop.addEventListener("dragover", (e) => e.preventDefault());
   drop.addEventListener("drop", (e) => {
     e.preventDefault();
     load(e.dataTransfer.files[0]);
@@ -55,8 +54,8 @@ function bindDrop(dropId, fileId, previewId, onReady) {
 }
 
 let idImage = null;
-let valImage = null;
 let identifying = false;
+let libFile = null;
 
 bindDrop("id-drop", "id-file", "id-preview", (img) => {
   idImage = img;
@@ -69,13 +68,19 @@ bindDrop("id-drop", "id-file", "id-preview", (img) => {
     if (!identifying) $("id-wait").classList.remove("show");
   });
 });
-bindDrop("val-drop", "val-file", "val-preview", (img) => {
-  valImage = img;
-  $("val-run").disabled = false;
-  warmupVision(() => {});
+
+bindDrop("lib-drop", "lib-file", "lib-preview", (img, _url, file) => {
+  libFile = file;
+  $("lib-add").disabled = !$("lib-name").value.trim();
+});
+
+$("lib-name").addEventListener("input", () => {
+  $("lib-add").disabled = !libFile || !$("lib-name").value.trim();
 });
 
 function morphHero(morph, kicker, extra = "") {
+  const extraN = (morph.extraIds || []).length;
+  const extraBadge = extraN ? `<span class="badge">내 참고 ${extraN}장</span>` : "";
   return `
     <article class="morph-hero">
       <img src="${morph.image}" alt="${morph.nameKo}" />
@@ -87,23 +92,27 @@ function morphHero(morph, kicker, extra = "") {
         <div class="badge-row">
           <span class="badge">${morph.inheritanceKo}</span>
           <span class="badge">${morph.look}</span>
+          ${extraBadge}
         </div>
         ${extra}
       </div>
     </article>`;
 }
 
-function renderIdentify(id, feat) {
+function renderIdentify(id) {
   const morph = id.top.morph;
-  const q = gradeQuality(feat, morph);
-  const price = estimatePrice(morph, q);
   const method =
     id.source === "clip"
-      ? `<p class="method-note">CLIP 딥러닝으로 도감 실물 사진과 비교했습니다. 사진은 브라우저 안에서만 처리됩니다.</p>`
+      ? `<p class="method-note">CLIP으로 기본 도감과 내가 추가한 참고 사진을 함께 비교했습니다. 사진은 이 브라우저에만 있습니다.</p>`
       : `<p class="method-note">모델 로드에 실패해 색 통계로 추정했습니다. ${id.error ? `원인: ${id.error}` : ""}</p>`;
   const warn = id.lowConfidence
-    ? `<div class="warn">후보 점수가 낮습니다. 게코가 작게 찍혔거나 조명이 강해 다른 모프일 수 있습니다.</div>`
+    ? `<div class="warn">후보 점수가 낮습니다. 참고 사진을 더 넣으면 구분력이 좋아집니다.</div>`
     : "";
+  const extras =
+    morph.extraImages?.length
+      ? `<div class="kicker" style="margin:12px 0 8px">이 모프의 내 참고 사진</div>
+         <div class="thumb-row">${morph.extraImages.map((src) => `<img src="${src}" alt="" />`).join("")}</div>`
+      : "";
   const alts = id.all
     .map(
       (x) => `
@@ -122,17 +131,10 @@ function renderIdentify(id, feat) {
     ${method}
     ${warn}
     ${morphHero(morph, "가장 가까운 모프")}
+    ${extras}
     <div>
       <div class="kicker" style="margin-bottom:8px">다른 가능성</div>
       <div class="alt-list">${alts}</div>
-    </div>
-    <div class="quality">
-      <div class="stamp ${q.rank}">${q.label}<br>${q.score}</div>
-      <div>
-        <div class="price">${formatWon(price.min)} – ${formatWon(price.max)}
-          <small>추정 시세 · 중간값 ${formatWon(price.mid)} · ${price.note}</small>
-        </div>
-      </div>
     </div>`;
 }
 
@@ -141,15 +143,14 @@ $("id-run").addEventListener("click", async () => {
   identifying = true;
   $("id-wait").classList.add("show");
   $("id-run").disabled = true;
-  $("id-wait-text").textContent = "CLIP으로 체색과 패턴을 읽고 있습니다…";
+  $("id-wait-text").textContent = "CLIP으로 도감·내 참고 사진과 비교하는 중…";
   try {
-    const feat = analyzePixels(idImage);
     const id = await identifyImage(idImage, {
       onStatus: (msg) => {
         $("id-wait-text").textContent = msg;
       },
     });
-    renderIdentify(id, feat);
+    renderIdentify(id);
   } catch (err) {
     $("id-result").innerHTML = `<div class="warn">분석에 실패했습니다. 다른 사진으로 다시 시도해 주세요.</div>`;
     console.warn(err);
@@ -159,12 +160,15 @@ $("id-run").addEventListener("click", async () => {
   $("id-run").disabled = false;
 });
 
-function fillSelects() {
-  const html = MORPHS.map((m) => `<option value="${m.id}">${m.nameKo} · ${m.nameEn}</option>`).join("");
+function fillSelects(catalogMorphs = MORPHS) {
+  const html = catalogMorphs
+    .filter((m) => m.category !== "het")
+    .map((m) => `<option value="${m.id}">${m.nameKo}${m.custom ? " (내 추가)" : ""} · ${m.nameEn}</option>`)
+    .join("");
   $("parent-a").innerHTML = html;
   $("parent-b").innerHTML = html;
-  $("parent-a").value = "lilly-white";
-  $("parent-b").value = "axanthic";
+  if ([...$("parent-a").options].some((o) => o.value === "lilly-white")) $("parent-a").value = "lilly-white";
+  if ([...$("parent-b").options].some((o) => o.value === "axanthic")) $("parent-b").value = "axanthic";
 }
 fillSelects();
 
@@ -220,8 +224,8 @@ function renderBreed(result) {
 function currentProfiles() {
   const a = applyHet(morphToProfile($("parent-a").value), $("het-a").value);
   const b = applyHet(morphToProfile($("parent-b").value), $("het-b").value);
-  const ma = getMorph($("parent-a").value);
-  const mb = getMorph($("parent-b").value);
+  const ma = getMorph($("parent-a").value) || { nameKo: $("parent-a").selectedOptions[0]?.text || "부모 A" };
+  const mb = getMorph($("parent-b").value) || { nameKo: $("parent-b").selectedOptions[0]?.text || "부모 B" };
   a.label = ma.nameKo + ($("het-a").value ? ` + ${$("het-a").selectedOptions[0].text}` : "");
   b.label = mb.nameKo + ($("het-b").value ? ` + ${$("het-b").selectedOptions[0].text}` : "");
   return { a, b };
@@ -264,10 +268,7 @@ function handleAsk(text) {
     addMsg("bot", `<strong>${names}</strong><div style="margin-top:10px">${renderBreed(ans.result)}</div>`);
   } else if (ans.type === "info") {
     const m = ans.morph;
-    addMsg(
-      "bot",
-      `${morphHero(m, "모프 정보")}<p style="margin-top:10px">시세 구간 ${formatWon(m.price.min)} – ${formatWon(m.price.max)}. 다른 모프와 섞은 결과가 필요하면 이름을 하나 더 적어 주세요.</p>`
-    );
+    addMsg("bot", `${morphHero(m, "모프 정보")}<p style="margin-top:10px">다른 모프와 섞은 결과가 필요하면 이름을 하나 더 적어 주세요.</p>`);
   } else {
     addMsg("bot", ans.message || "모프 이름을 인식하지 못했습니다. 도감에 있는 이름(릴리 화이트, 아잔틱, 카푸치노, 할리퀸 등)으로 물어봐 주세요.");
   }
@@ -286,22 +287,92 @@ $("ask-form").addEventListener("submit", (e) => {
   handleAsk(v);
 });
 
-$("gallery-grid").innerHTML = MORPHS.map(
-  (m) => `
+let catalogCache = MORPHS.map((m) => ({ ...m, extraIds: [], extraImages: [] }));
+
+async function refreshLibrary() {
+  const { morphs, photos } = await buildCatalog();
+  catalogCache = morphs;
+  fillSelects(morphs);
+  renderGallery(morphs, photos);
+  renderLibList(photos);
+}
+
+function renderLibList(photos) {
+  const el = $("lib-list");
+  if (!photos.length) {
+    el.innerHTML = `<p class="sub" style="margin-top:12px">아직 추가한 참고 사진이 없습니다.</p>`;
+    return;
+  }
+  el.innerHTML = photos
+    .map((p) => {
+      const linked = matchMorphByName(p.name);
+      const tag = linked ? linked.nameKo : "새 모프";
+      return `
+        <article class="lib-item">
+          <img src="${p.image}" alt="${p.name}" />
+          <div>
+            <strong>${p.name}</strong>
+            <span>${tag} 분석에 포함됨</span>
+          </div>
+          <button type="button" class="btn ghost tiny" data-del="${p.id}">삭제</button>
+        </article>`;
+    })
+    .join("");
+}
+
+function renderGallery(morphs, photos) {
+  const builtIn = morphs
+    .filter((m) => !m.custom)
+    .map(
+      (m) => `
   <article class="g-card" data-id="${m.id}">
     <img src="${m.image}" alt="${m.nameKo}" />
     <div class="pad">
-      <div class="en">${m.nameEn}</div>
+      <div class="en">${m.nameEn}${m.extraIds?.length ? ` · 내 사진 ${m.extraIds.length}` : ""}</div>
       <h3>${m.nameKo}</h3>
       <p>${m.look}</p>
     </div>
   </article>`
-).join("");
+    )
+    .join("");
+
+  const mine = photos
+    .map(
+      (p) => `
+  <article class="g-card custom" data-photo="${p.id}">
+    <img src="${p.image}" alt="${p.name}" />
+    <div class="pad">
+      <div class="en">내가 추가</div>
+      <h3>${p.name}</h3>
+      <p>모프 분석 비교용 참고 사진</p>
+    </div>
+  </article>`
+    )
+    .join("");
+
+  $("gallery-grid").innerHTML = builtIn + mine;
+}
 
 $("gallery-grid").addEventListener("click", (e) => {
   const card = e.target.closest(".g-card");
   if (!card) return;
-  const m = getMorph(card.dataset.id);
+  if (card.dataset.photo) {
+    const m = catalogCache.find((x) => (x.extraIds || []).includes("custom:" + card.dataset.photo));
+    const title = m?.nameKo || "내 참고 사진";
+    $("modal-card").innerHTML = `
+      <img src="${card.querySelector("img").src}" alt="${title}" />
+      <div class="pad">
+        <div class="kicker">내가 추가한 참고 사진</div>
+        <h3>${title}</h3>
+        <p style="margin:12px 0;line-height:1.6">이 사진은 모프 분석 때 도감과 함께 비교됩니다.</p>
+        <button class="btn ghost" id="close-modal" style="margin-top:16px">닫기</button>
+      </div>`;
+    $("modal").classList.add("open");
+    return;
+  }
+  const m = catalogCache.find((x) => x.id === card.dataset.id) || getMorph(card.dataset.id);
+  if (!m) return;
+  const extraImgs = (m.extraImages || []).map((src) => `<img src="${src}" alt="" />`).join("");
   $("modal-card").innerHTML = `
     <img src="${m.image}" alt="${m.nameKo}" />
     <div class="pad">
@@ -311,8 +382,8 @@ $("gallery-grid").addEventListener("click", (e) => {
       <p style="margin:12px 0;line-height:1.6">${m.description}</p>
       <div class="badge-row">
         <span class="badge">${m.look}</span>
-        <span class="badge">${formatWon(m.price.min)} – ${formatWon(m.price.max)}</span>
       </div>
+      ${extraImgs ? `<div class="kicker" style="margin:14px 0 8px">내 참고 사진</div><div class="thumb-row">${extraImgs}</div>` : ""}
       <button class="btn ghost" id="close-modal" style="margin-top:16px">닫기</button>
     </div>`;
   $("modal").classList.add("open");
@@ -322,38 +393,40 @@ $("modal").addEventListener("click", (e) => {
   if (e.target.id === "modal" || e.target.id === "close-modal") $("modal").classList.remove("open");
 });
 
-$("val-run").addEventListener("click", async () => {
-  if (!valImage) return;
-  $("val-wait").classList.add("show");
-  $("val-run").disabled = true;
-  $("val-wait-text").textContent = "CLIP으로 모프를 추정한 뒤 퀄리티를 감정합니다…";
-  const feat = analyzePixels(valImage);
-  const id = await identifyImage(valImage, {
-    onStatus: (msg) => {
-      $("val-wait-text").textContent = msg;
-    },
-  });
-  const morph = id.top.morph;
-  const q = gradeQuality(feat, morph);
-  const price = estimatePrice(morph, q);
-  const reasons = q.reasons.map((r) => `<li>${r}</li>`).join("");
-  const method =
-    id.source === "clip"
-      ? "모프는 CLIP 딥러닝으로 도감 사진과 비교했고, 등급은 대비·발색·선명도로 계산합니다."
-      : "모프는 색 통계로 추정했습니다.";
-  $("val-result").innerHTML = `
-    ${morphHero(morph, "추정 모프 기준 감정")}
-    <div class="quality">
-      <div class="stamp ${q.rank}">${q.label}<br>${q.score}점</div>
-      <div>
-        <div class="price">${formatWon(price.mid)}
-          <small>추정 구간 ${formatWon(price.min)} – ${formatWon(price.max)}</small>
-        </div>
-      </div>
-    </div>
-    <ul class="reasons">${reasons}</ul>
-    <p class="sub" style="margin-top:12px">${method} ${price.note} 등급 기준: 78+ 매우 좋음 · 62+ 좋음 · 44+ 보통 · 그 아래 안좋음.</p>
-  `;
-  $("val-wait").classList.remove("show");
-  $("val-run").disabled = false;
+$("lib-add").addEventListener("click", async () => {
+  const name = $("lib-name").value.trim();
+  if (!libFile || !name) return;
+  $("lib-add").disabled = true;
+  $("lib-status").textContent = "사진을 저장하고 분석용으로 넣는 중…";
+  try {
+    const { dataUrl, img } = await fileToDataUrl(libFile);
+    const signature = signatureFromImage(img);
+    await addCustomPhoto({ name, image: dataUrl, signature });
+    await refreshLibrary();
+    warmupVision(() => {});
+    const linked = matchMorphByName(name);
+    $("lib-status").textContent = linked
+      ? `「${linked.nameKo}」 참고 사진으로 추가했습니다. 이제 모프 분석에 포함됩니다.`
+      : `「${name}」을 새 참고 모프로 추가했습니다. 이제 모프 분석에 포함됩니다.`;
+    libFile = null;
+    $("lib-file").value = "";
+    $("lib-name").value = "";
+    $("lib-preview").hidden = true;
+    $("lib-drop").classList.remove("has-img");
+  } catch (err) {
+    console.warn(err);
+    $("lib-status").textContent = "추가에 실패했습니다. 다른 사진으로 다시 시도해 주세요.";
+    $("lib-add").disabled = false;
+  }
 });
+
+$("lib-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-del]");
+  if (!btn) return;
+  const id = btn.dataset.del;
+  await deleteCustomPhoto(id);
+  forgetCustomEmbed(id);
+  await refreshLibrary();
+});
+
+refreshLibrary().catch((err) => console.warn("library load failed", err));

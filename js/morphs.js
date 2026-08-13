@@ -225,7 +225,7 @@ export const MORPHS = [
     description:
       "2010년대 Lilly Exotics에서 확립된 불완전 우성 유전자입니다. 크림·화이트 커버리지가 넓고 자라면서 더 하얘집니다. 릴리끼리 교배하면 슈퍼 릴리(치사)가 25%라 절대 권장하지 않습니다.",
     look: "몸 옆·배·꼬리가 하얗고 등·머리는 유색",
-    image: "assets/morphs/lilly-white.jpg",
+    image: "assets/morphs/lilly-white.jpg?v=3",
     aliases: ["릴리화이트", "릴리", "릴리화", "lilly", "lillywhite", "lily", "lilywhite"],
     genes: { lillyWhite: 1 },
     traits: {},
@@ -315,7 +315,7 @@ export const MORPHS = [
     description:
       "팬텀의 멜라닌과 릴리의 화이트가 겹칩니다. 어두운 몸통에 하양 커버리지가 또렷하게 대비됩니다.",
     look: "어두운 몸 + 릴리 화이트 패턴",
-    image: "assets/morphs/lilly-white.jpg",
+    image: "assets/morphs/phantom-lilly.jpg?v=2",
     aliases: ["팬텀릴리", "팬텀릴리화이트", "phantomlilly", "phantomlily"],
     genes: { lillyWhite: 1, phantom: 2 },
     traits: {},

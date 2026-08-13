@@ -111,6 +111,7 @@ function pickImage(genes, traits, parts) {
   const joined = parts.join(" ");
   if (joined.includes("프라푸치노")) return "frappuccino";
   if (joined.includes("릴리 아잔틱")) return "lilly-axanthic";
+  if (joined.includes("팬텀 릴리")) return "phantom-lilly";
   if (joined.includes("슈퍼 카푸")) return "cappuccino";
   if ((genes.lillyWhite || 0) === 1) return "lilly-white";
   if ((genes.cappuccino || 0) >= 1) return "cappuccino";
