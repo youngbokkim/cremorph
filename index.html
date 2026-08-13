@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CREMORPH — 크레스티드게코 모프 AI</title>
+    <title>CREHOONI — 크레스티드게코 모프 AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,800&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.css?v=3" />
+    <link rel="stylesheet" href="css/app.css?v=6" />
   </head>
   <body>
     <div class="grain"></div>
@@ -17,7 +17,7 @@
         <div class="brand">
           <div class="crest" aria-hidden="true"></div>
           <div>
-            <h1>CRE<span>MORPH</span></h1>
+            <h1>CRE<span>HOONI</span></h1>
             <p>크레스티드게코 모프 식별 · 교배 · 시세 <span class="latin">Correlophus ciliatus</span></p>
           </div>
         </div>
@@ -38,7 +38,7 @@
         <div class="grid-2">
           <div class="card">
             <h2>게코 사진으로 모프 찾기</h2>
-            <p class="sub">정면·측면이 잘 나온 사진일수록 정확합니다. DNA 검사는 아니고 외형 분석입니다.</p>
+            <p class="sub">브라우저에서 CLIP 딥러닝으로 도감 사진과 비교합니다. 첫 분석 때 모델(약 80MB)을 받으며, 사진은 서버로 올라가지 않습니다.</p>
             <label class="drop" id="id-drop">
               <input type="file" accept="image/*" id="id-file" />
               <div class="drop-ui">
@@ -48,7 +48,7 @@
               <img class="preview" id="id-preview" alt="" hidden />
             </label>
             <button class="btn" id="id-run" disabled>모프 분석하기</button>
-            <div class="analyzing" id="id-wait"><i class="dot"></i> 체색과 패턴을 읽고 있습니다…</div>
+            <div class="analyzing" id="id-wait"><i class="dot"></i><span id="id-wait-text">체색과 패턴을 읽고 있습니다…</span></div>
           </div>
           <div class="card">
             <h2>분석 결과</h2>
@@ -124,7 +124,7 @@
               <img class="preview" id="val-preview" alt="" hidden />
             </label>
             <button class="btn" id="val-run" disabled>퀄리티 · 가격 감정</button>
-            <div class="analyzing" id="val-wait"><i class="dot"></i> 개체 퀄리티를 감정하는 중…</div>
+            <div class="analyzing" id="val-wait"><i class="dot"></i><span id="val-wait-text">개체 퀄리티를 감정하는 중…</span></div>
           </div>
           <div class="card">
             <h2>감정서</h2>
@@ -137,7 +137,7 @@
       </section>
 
       <footer class="foot">
-        CREMORPH는 외형 분석과 공개된 크레스티드게코 유전 규칙(릴리 화이트 불완전 우성·치사 슈퍼폼, 아잔틱·팬텀 열성, 카푸치노 불완전 우성, 패턴은 다지성)을 사용합니다.
+        크래후니는 브라우저 CLIP(OpenAI CLIP ViT-B/32)으로 도감 사진과 비교하고, 공개된 크레스티드게코 유전 규칙(릴리 화이트 불완전 우성·치사 슈퍼폼, 아잔틱·팬텀 열성, 카푸치노 불완전 우성, 패턴은 다지성)을 사용합니다.
         할리퀸·핀·달마 확률은 근사치이며, 시세는 2026년 한국 분양 시장의 대략 구간입니다. 사진 속 개체 건강·성별은 판정하지 않습니다.
       </footer>
     </div>
@@ -146,6 +146,6 @@
       <div class="modal-card" id="modal-card"></div>
     </div>
 
-    <script type="module" src="js/app.js?v=3"></script>
+    <script type="module" src="js/app.js?v=6"></script>
   </body>
 </html>

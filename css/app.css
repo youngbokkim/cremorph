@@ -524,6 +524,12 @@ nav.tabs {
   margin-top: 12px;
 }
 .analyzing.show { display: flex; }
+.method-note {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
 .dot {
   width: 8px; height: 8px; border-radius: 50%; background: var(--eye);
   animation: blink 1s infinite;

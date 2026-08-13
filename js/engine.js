@@ -434,7 +434,7 @@ export function analyzePixels(image) {
   return feat;
 }
 
-function morphScore(feat, morph) {
+export function morphScore(feat, morph) {
   const s = morph.signature;
   if (!s) return 0;
   const dist =

@@ -1,7 +1,6 @@
 import { MORPHS, getMorph } from "./morphs.js";
 import {
   analyzePixels,
-  identifyMorph,
   gradeQuality,
   estimatePrice,
   formatWon,
@@ -9,6 +8,7 @@ import {
   morphToProfile,
   answerQuestion,
 } from "./engine.js";
+import { identifyImage, warmupVision } from "./vision.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -54,20 +54,25 @@ function bindDrop(dropId, fileId, previewId, onReady) {
   });
 }
 
-function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
 let idImage = null;
 let valImage = null;
+let identifying = false;
 
 bindDrop("id-drop", "id-file", "id-preview", (img) => {
   idImage = img;
   $("id-run").disabled = false;
+  warmupVision((msg) => {
+    if (identifying) return;
+    $("id-wait-text").textContent = msg;
+    $("id-wait").classList.add("show");
+  }).finally(() => {
+    if (!identifying) $("id-wait").classList.remove("show");
+  });
 });
 bindDrop("val-drop", "val-file", "val-preview", (img) => {
   valImage = img;
   $("val-run").disabled = false;
+  warmupVision(() => {});
 });
 
 function morphHero(morph, kicker, extra = "") {
@@ -88,11 +93,14 @@ function morphHero(morph, kicker, extra = "") {
     </article>`;
 }
 
-function renderIdentify(feat) {
-  const id = identifyMorph(feat);
+function renderIdentify(id, feat) {
   const morph = id.top.morph;
   const q = gradeQuality(feat, morph);
   const price = estimatePrice(morph, q);
+  const method =
+    id.source === "clip"
+      ? `<p class="method-note">CLIP 딥러닝으로 도감 실물 사진과 비교했습니다. 사진은 브라우저 안에서만 처리됩니다.</p>`
+      : `<p class="method-note">모델 로드에 실패해 색 통계로 추정했습니다. ${id.error ? `원인: ${id.error}` : ""}</p>`;
   const warn = id.lowConfidence
     ? `<div class="warn">후보 점수가 낮습니다. 게코가 작게 찍혔거나 조명이 강해 다른 모프일 수 있습니다.</div>`
     : "";
@@ -111,6 +119,7 @@ function renderIdentify(feat) {
     .join("");
 
   $("id-result").innerHTML = `
+    ${method}
     ${warn}
     ${morphHero(morph, "가장 가까운 모프")}
     <div>
@@ -129,11 +138,23 @@ function renderIdentify(feat) {
 
 $("id-run").addEventListener("click", async () => {
   if (!idImage) return;
+  identifying = true;
   $("id-wait").classList.add("show");
   $("id-run").disabled = true;
-  await wait(900);
-  const feat = analyzePixels(idImage);
-  renderIdentify(feat);
+  $("id-wait-text").textContent = "CLIP으로 체색과 패턴을 읽고 있습니다…";
+  try {
+    const feat = analyzePixels(idImage);
+    const id = await identifyImage(idImage, {
+      onStatus: (msg) => {
+        $("id-wait-text").textContent = msg;
+      },
+    });
+    renderIdentify(id, feat);
+  } catch (err) {
+    $("id-result").innerHTML = `<div class="warn">분석에 실패했습니다. 다른 사진으로 다시 시도해 주세요.</div>`;
+    console.warn(err);
+  }
+  identifying = false;
   $("id-wait").classList.remove("show");
   $("id-run").disabled = false;
 });
@@ -305,13 +326,21 @@ $("val-run").addEventListener("click", async () => {
   if (!valImage) return;
   $("val-wait").classList.add("show");
   $("val-run").disabled = true;
-  await wait(1000);
+  $("val-wait-text").textContent = "CLIP으로 모프를 추정한 뒤 퀄리티를 감정합니다…";
   const feat = analyzePixels(valImage);
-  const id = identifyMorph(feat);
+  const id = await identifyImage(valImage, {
+    onStatus: (msg) => {
+      $("val-wait-text").textContent = msg;
+    },
+  });
   const morph = id.top.morph;
   const q = gradeQuality(feat, morph);
   const price = estimatePrice(morph, q);
   const reasons = q.reasons.map((r) => `<li>${r}</li>`).join("");
+  const method =
+    id.source === "clip"
+      ? "모프는 CLIP 딥러닝으로 도감 사진과 비교했고, 등급은 대비·발색·선명도로 계산합니다."
+      : "모프는 색 통계로 추정했습니다.";
   $("val-result").innerHTML = `
     ${morphHero(morph, "추정 모프 기준 감정")}
     <div class="quality">
@@ -323,7 +352,7 @@ $("val-run").addEventListener("click", async () => {
       </div>
     </div>
     <ul class="reasons">${reasons}</ul>
-    <p class="sub" style="margin-top:12px">${price.note} 등급 기준: 78+ 매우 좋음 · 62+ 좋음 · 44+ 보통 · 그 아래 안좋음.</p>
+    <p class="sub" style="margin-top:12px">${method} ${price.note} 등급 기준: 78+ 매우 좋음 · 62+ 좋음 · 44+ 보통 · 그 아래 안좋음.</p>
   `;
   $("val-wait").classList.remove("show");
   $("val-run").disabled = false;
