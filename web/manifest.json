@@ -1,0 +1,36 @@
+{
+    "name": "CREHOONI — 크레스티드게코 모프",
+    "short_name": "CREHOONI",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#100c08",
+    "theme_color": "#100c08",
+    "description": "크레스티드게코 모프를 사진으로 식별하고, 교배 결과를 예측하고, 도감을 찾아보는 앱입니다.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "lang": "ko",
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -1,4 +1,4 @@
-name: Deploy GitHub Pages
+name: Deploy web to GitHub Pages
 
 on:
   push:
@@ -15,16 +15,58 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.4
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting and analysis
+        run: |
+          dart format --output=none --set-exit-if-changed lib test
+          flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      # A GitHub Pages *project* site is served from /<repo>/, so the base href
+      # must match or every asset request 404s.
+      - name: Build web
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build web \
+            --release \
+            --base-href="/${{ github.event.repository.name }}/" \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
+      # GitHub Pages has no SPA rewrite rule. Serving index.html as the 404 page
+      # makes deep links resolve instead of showing GitHub's own error page.
+      - name: Add SPA fallback
+        run: cp build/web/index.html build/web/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
   deploy:
+    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
       - id: deployment
         uses: actions/deploy-pages@v4

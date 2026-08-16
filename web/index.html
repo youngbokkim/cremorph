@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!-- Replaced by the `--base-href` argument passed to `flutter build web`.
+       GitHub Pages serves this project at /cremorph/, so CI passes that path. -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="크레스티드게코 모프를 사진으로 식별하고, 두 부모의 교배 결과를 유전 규칙으로 예측하고, 모프 도감을 찾아보는 앱입니다.">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CREHOONI">
+  <meta name="theme-color" content="#100c08">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <meta property="og:title" content="CREHOONI — 크레스티드게코 모프 AI">
+  <meta property="og:description" content="사진으로 모프 식별 · 교배 확률 예측 · 모프 도감">
+  <meta property="og:type" content="website">
+
+  <title>CREHOONI — 크레스티드게코 모프 식별 · 교배</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Painted before Flutter boots so the first frame is not a white flash
+       against the app's dark soil palette. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #100c08;
+      overflow: hidden;
+    }
+
+    #boot {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+        "Malgun Gothic", sans-serif;
+      color: #b7c2a8;
+      transition: opacity 0.3s ease;
+    }
+
+    #boot .mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px 16px 20px 20px;
+      background: linear-gradient(180deg, #c45a32, #7a3a1c);
+      box-shadow: 0 0 0 1px rgba(255, 220, 160, 0.2);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    #boot .label {
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.94); }
+    }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    <div class="mark"></div>
+    <div class="label">Crehooni</div>
+  </div>
+
+  <script>
+    // Remove the boot placeholder once Flutter has painted its first frame.
+    window.addEventListener('flutter-first-frame', function () {
+      var boot = document.getElementById('boot');
+      if (!boot) return;
+      boot.style.opacity = '0';
+      setTimeout(function () { boot.remove(); }, 320);
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

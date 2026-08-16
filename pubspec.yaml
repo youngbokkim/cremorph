@@ -1,0 +1,64 @@
+name: crehooni
+description: "CREHOONI — 크레스티드게코 모프 식별 · 교배 예측 · 도감"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Backend: Postgres + storage + anonymous auth + edge functions.
+  supabase_flutter: ^2.17.1
+
+  # State management.
+  flutter_riverpod: ^2.6.1
+
+  # Pure-Dart decode/resize/encode, so the ported pixel analysis runs the same
+  # way on iOS, Android and web.
+  image: ^4.9.1
+
+  image_picker: ^1.2.3
+  cached_network_image: ^3.4.1
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Used only by integration_test/, which talks to a real Supabase project on a
+  # real device. `flutter test` (and therefore CI) does not pick those up.
+  integration_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # The 18 built-in morph reference photos, carried over unchanged from the
+    # web version.
+    - assets/morphs/
+
+  fonts:
+    # Display face for headings, percentages and prices. Variable font, so
+    # weights are selected via FontVariation in lib/core/theme.dart.
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces.ttf
+
+    # Body face. Static weights are used rather than the 6.7MB variable build.
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
