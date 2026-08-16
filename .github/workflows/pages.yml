@@ -46,9 +46,27 @@ jobs:
         run: |
           flutter build web \
             --release \
+            --pwa-strategy=none \
             --base-href="/${{ github.event.repository.name }}/" \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
+      # GitHub Pages and leftover Flutter workers cache index.html. Stamp the
+      # commit onto the bootstrap URL so a new deploy is not served from cache.
+      - name: Cache-bust bootstrap
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          sha = os.environ["GITHUB_SHA"][:12]
+          path = Path("build/web/index.html")
+          text = path.read_text()
+          text = text.replace(
+              'src="flutter_bootstrap.js"',
+              f'src="flutter_bootstrap.js?v={sha}"',
+          )
+          path.write_text(text)
+          PY
 
       # GitHub Pages has no SPA rewrite rule. Serving index.html as the 404 page
       # makes deep links resolve instead of showing GitHub's own error page.

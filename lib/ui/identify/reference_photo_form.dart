@@ -102,6 +102,7 @@ class _ReferencePhotoFormState extends ConsumerState<ReferencePhotoForm> {
   @override
   Widget build(BuildContext context) {
     final online = ref.watch(isOnlineProvider);
+    final offlineReason = ref.watch(supabaseServiceProvider).unavailableReason;
     final catalog = ref.watch(catalogProvider);
     final sharedPhotos =
         catalog.value?.sharedPhotos ?? const <ReferencePhoto>[];
@@ -116,9 +117,11 @@ class _ReferencePhotoFormState extends ConsumerState<ReferencePhotoForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!online)
-            const Callout(
+            Callout(
               title: '오프라인 모드',
-              text: 'SUPABASE_URL과 SUPABASE_ANON_KEY를 지정해 빌드하면 참고 사진 공유가 켜집니다.',
+              text:
+                  offlineReason ??
+                  'SUPABASE_URL과 SUPABASE_ANON_KEY를 지정해 빌드하면 참고 사진 공유가 켜집니다.',
             )
           else ...[
             _FormBody(

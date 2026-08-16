@@ -44,15 +44,29 @@ class SupabaseService {
         // Named `anon key` in the dashboard; the SDK calls it the publishable
         // key. Either the legacy JWT or the newer `sb_publishable_...` key works.
         publishableKey: AppConfig.supabaseAnonKey,
-        authOptions: const FlutterAuthClientOptions(
+        authOptions: FlutterAuthClientOptions(
           authFlowType: AuthFlowType.pkce,
+          // Anonymous-only app: skip OAuth deep-link handling on web so a
+          // plugin or URL parse failure cannot take the whole client down.
+          detectSessionInUri: !kIsWeb,
         ),
       );
       _initialised = true;
       await _ensureSession();
     } catch (error, stack) {
-      unavailableReason = '서버에 연결하지 못했습니다. 오프라인 모드로 실행합니다.';
       debugPrint('CREHOONI: Supabase init failed — $error\n$stack');
+      var clientReady = false;
+      try {
+        clientReady = Supabase.instance.isInitialized;
+      } catch (_) {
+        clientReady = false;
+      }
+      if (clientReady) {
+        _initialised = true;
+        await _ensureSession();
+        return;
+      }
+      unavailableReason = '서버에 연결하지 못했습니다. 오프라인 모드로 실행합니다.';
     }
   }
 
