@@ -51,8 +51,8 @@ void main() {
 
       expect(find.text('부모 모프 고르기'), findsOne);
       expect(find.byKey(const Key('breed-parent-search')), findsOne);
-      expect(find.text('부모 A'), findsOne);
-      expect(find.text('부모 B'), findsOne);
+      expect(find.text('암컷'), findsOne);
+      expect(find.text('수컷'), findsOne);
 
       tester
           .widget<AppButton>(find.widgetWithText(AppButton, '자손 모프 예측'))
@@ -74,7 +74,7 @@ void main() {
       await tester.tap(find.text('교배 AI'));
       await tester.pumpAndSettle();
 
-      expect(find.text('18종'), findsOne);
+      expect(find.text('27종'), findsOne);
 
       await tester.enterText(
         find.byKey(const Key('breed-parent-search')),
@@ -113,7 +113,7 @@ void main() {
       await tester.tap(find.text('모프 도감').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('전체 18'), findsOne);
+      expect(find.text('전체 28'), findsOne);
 
       // The first tile of the unfiltered grid.
       await tester.tap(find.text('노멀'));
@@ -150,7 +150,7 @@ void main() {
       await tester.tap(find.text('모프 도감'));
       await tester.pumpAndSettle();
 
-      expect(find.text('전체 18'), findsWidgets);
+      expect(find.text('전체 28'), findsWidgets);
     });
 
     testWidgets('lays the breeding panel out in two columns', (tester) async {

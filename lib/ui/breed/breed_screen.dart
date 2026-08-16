@@ -51,11 +51,16 @@ class _ParentPickerState extends ConsumerState<_ParentPicker> {
     super.dispose();
   }
 
+  List<Morph> get _parentMorphs => [
+    for (final morph in selectableMorphs)
+      if (morph.id != 'soft-scale') morph,
+  ];
+
   List<Morph> get _filteredMorphs {
     final query = normalizeName(_searchController.text);
-    if (query.isEmpty) return selectableMorphs;
+    if (query.isEmpty) return _parentMorphs;
     return [
-      for (final morph in selectableMorphs)
+      for (final morph in _parentMorphs)
         if (_matchesQuery(morph, query)) morph,
     ];
   }
@@ -74,7 +79,7 @@ class _ParentPickerState extends ConsumerState<_ParentPicker> {
     final morphs = _filteredMorphs;
 
     final parentA = _ParentColumn(
-      title: '부모 A',
+      title: '암컷',
       morphId: state.parentAId,
       het: state.hetA,
       morphs: morphs,
@@ -83,7 +88,7 @@ class _ParentPickerState extends ConsumerState<_ParentPicker> {
     );
 
     final parentB = _ParentColumn(
-      title: '부모 B',
+      title: '수컷',
       morphId: state.parentBId,
       het: state.hetB,
       morphs: morphs,

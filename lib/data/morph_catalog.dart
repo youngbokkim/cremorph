@@ -7,10 +7,24 @@ abstract final class GeneKey {
   static const axanthic = 'axanthic';
   static const phantom = 'phantom';
   static const cappuccino = 'cappuccino';
+  static const sable = 'sable';
+  static const softScale = 'softScale';
+  static const dunkel = 'dunkel';
+  static const hypo = 'hypo';
+  static const charcoal = 'charcoal';
 
-  /// Iteration order matters: it fixes the order of Punnett loci, so keep it
-  /// identical to `Object.keys(GENE_META)` in the web version.
-  static const all = <String>[lillyWhite, axanthic, phantom, cappuccino];
+  /// Iteration order matters: it fixes the order of Punnett loci.
+  static const all = <String>[
+    lillyWhite,
+    axanthic,
+    phantom,
+    cappuccino,
+    sable,
+    softScale,
+    dunkel,
+    hypo,
+    charcoal,
+  ];
 }
 
 /// Polygenic pattern traits, approximated rather than inherited by Mendel.
@@ -24,6 +38,11 @@ abstract final class TraitKey {
   static const halloween = 'halloween';
   static const creamsicle = 'creamsicle';
   static const tricolor = 'tricolor';
+  static const lavender = 'lavender';
+  static const chocolate = 'chocolate';
+  static const moonglow = 'moonglow';
+  static const whiteWall = 'whiteWall';
+  static const emptyback = 'emptyback';
 
   static const all = <String>[
     flame,
@@ -35,6 +54,11 @@ abstract final class TraitKey {
     halloween,
     creamsicle,
     tricolor,
+    lavender,
+    chocolate,
+    moonglow,
+    whiteWall,
+    emptyback,
   ];
 }
 
@@ -98,6 +122,38 @@ const geneMeta = <String, GeneMeta>{
     cautionSuper: true,
     imageId: 'cappuccino',
   ),
+  GeneKey.sable: GeneMeta(
+    name: '세이블',
+    mode: Inheritance.incompleteDominant,
+    labels: ['없음', '세이블', '슈퍼 세이블'],
+    imageId: 'sable',
+  ),
+  GeneKey.softScale: GeneMeta(
+    name: '소프트스케일',
+    mode: Inheritance.incompleteDominant,
+    labels: ['없음', '소프트스케일', '슈퍼 소프트스케일'],
+    cautionSuper: true,
+    imageId: 'soft-scale',
+  ),
+  GeneKey.dunkel: GeneMeta(
+    name: '던켈',
+    mode: Inheritance.incompleteDominant,
+    labels: ['없음', '던켈', '슈퍼 던켈'],
+    cautionSuper: true,
+    imageId: 'dunkel',
+  ),
+  GeneKey.hypo: GeneMeta(
+    name: '하이포',
+    mode: Inheritance.recessive,
+    labels: ['없음', '헷 하이포', '비주얼 하이포'],
+    imageId: 'hypo',
+  ),
+  GeneKey.charcoal: GeneMeta(
+    name: '차콜',
+    mode: Inheritance.recessive,
+    labels: ['없음', '헷 차콜', '비주얼 차콜'],
+    imageId: 'charcoal',
+  ),
 };
 
 const traitMeta = <String, TraitMeta>{
@@ -110,11 +166,16 @@ const traitMeta = <String, TraitMeta>{
   TraitKey.halloween: TraitMeta(name: '할로윈', imageId: 'halloween'),
   TraitKey.creamsicle: TraitMeta(name: '크림시클', imageId: 'creamsicle'),
   TraitKey.tricolor: TraitMeta(name: '트라이컬러', imageId: 'tricolor'),
+  TraitKey.lavender: TraitMeta(name: '라벤더', imageId: 'lavender'),
+  TraitKey.chocolate: TraitMeta(name: '초콜릿', imageId: 'chocolate'),
+  TraitKey.moonglow: TraitMeta(name: '문글로우', imageId: 'moonglow'),
+  TraitKey.whiteWall: TraitMeta(name: '화이트월', imageId: 'white-wall'),
+  TraitKey.emptyback: TraitMeta(name: '엠티백', imageId: 'emptyback'),
 };
 
 String _asset(String id) => 'assets/morphs/$id.jpg';
 
-/// The 18 built-in morphs, ported from `MORPHS` in `js/morphs.js`.
+/// Built-in morphs shown in breeding, the gallery, and identification.
 final List<Morph> morphCatalog = <Morph>[
   Morph(
     id: 'normal',
@@ -593,6 +654,266 @@ final List<Morph> morphCatalog = <Morph>[
       sat: 0.28,
     ),
   ),
+  Morph(
+    id: 'sable',
+    nameKo: '세이블',
+    nameEn: 'Sable',
+    category: MorphCategory.genetic,
+    inheritance: Inheritance.incompleteDominant,
+    inheritanceKo: '불완전 우성 · 카푸치노와 같은 좌위로 보기도 함',
+    description:
+        '벨벳처럼 어두운 몸과 부드러운 대비가 특징인 불완전 우성입니다. 카푸치노와 같은 좌위라는 연구가 있어 카푸와 세이블끼리의 슈퍼폼은 피합니다.',
+    look: '짙은 벨벳 브라운·블랙, 무늬 대비가 부드러움',
+    assetImage: _asset('cappuccino'),
+    aliases: ['세이블', 'sable'],
+    genes: {GeneKey.sable: 1},
+    price: PriceBand(min: 400000, max: 2200000),
+    rarity: 5,
+    signature: ImageFeatures.signature(
+      white: 0.05,
+      orange: 0.06,
+      yellow: 0.04,
+      dark: 0.78,
+      gray: 0.28,
+      brown: 0.38,
+      spots: 0.02,
+      sat: 0.18,
+    ),
+  ),
+  Morph(
+    id: 'soft-scale',
+    nameKo: '소프트스케일',
+    nameEn: 'Soft Scale',
+    category: MorphCategory.genetic,
+    inheritance: Inheritance.incompleteDominant,
+    inheritanceKo: '불완전 우성 · 슈퍼폼은 건강 이슈',
+    description:
+        '비늘이 부드럽고 피부에 가깝게 보이는 불완전 우성입니다. 만졌을 때 매끄럽고, 슈퍼 소프트스케일은 탈피·피부 문제가 보고되어 같은 유전자끼리 교배는 권하지 않습니다.',
+    look: '비늘 융기가 낮고 피부가 매끈해 보임',
+    assetImage: _asset('normal'),
+    aliases: ['소프트스케일', '소프트 스케일', 'softscale', 'soft scale'],
+    genes: {GeneKey.softScale: 1},
+    price: PriceBand(min: 350000, max: 1800000),
+    rarity: 4,
+    signature: ImageFeatures.signature(
+      white: 0.16,
+      orange: 0.2,
+      yellow: 0.14,
+      dark: 0.36,
+      gray: 0.14,
+      brown: 0.48,
+      spots: 0.02,
+      sat: 0.34,
+    ),
+  ),
+  Morph(
+    id: 'dunkel',
+    nameKo: '던켈',
+    nameEn: 'Dunkel',
+    category: MorphCategory.genetic,
+    inheritance: Inheritance.incompleteDominant,
+    inheritanceKo: '불완전 우성 · 카푸치노 계열',
+    description:
+        '카푸치노 라인에서 나온 매우 어두운 불완전 우성입니다. 에스프레소에 가까운 몸색과 낮은 크레스트가 겹칩니다. 슈퍼폼은 카푸와 비슷하게 건강 이슈가 있어 주의합니다.',
+    look: '거의 검은 커피색, 크레스트가 낮음',
+    assetImage: _asset('cappuccino'),
+    aliases: ['던켈', 'dunkel'],
+    genes: {GeneKey.dunkel: 1},
+    price: PriceBand(min: 450000, max: 2400000),
+    rarity: 5,
+    signature: ImageFeatures.signature(
+      white: 0.07,
+      orange: 0.16,
+      yellow: 0.05,
+      dark: 0.68,
+      gray: 0.12,
+      brown: 0.7,
+      spots: 0.03,
+      sat: 0.24,
+    ),
+  ),
+  Morph(
+    id: 'hypo',
+    nameKo: '하이포',
+    nameEn: 'Hypo',
+    category: MorphCategory.genetic,
+    inheritance: Inheritance.recessive,
+    inheritanceKo: '열성 (멜라닌 감소, 근사)',
+    description:
+        '멜라닌이 줄어 바탕이 맑고 패턴이 부드럽게 빠집니다. 단일 좌위로 확정되진 않았지만, 브리더들이 열성처럼 추적하는 경우가 많아 헷/비주얼로 계산합니다.',
+    look: '연한 바탕, 어두운 무늬가 흐릿함',
+    assetImage: _asset('creamsicle'),
+    aliases: ['하이포', 'hypo', 'hypomelanistic'],
+    genes: {GeneKey.hypo: 2},
+    price: PriceBand(min: 180000, max: 700000),
+    rarity: 3,
+    signature: ImageFeatures.signature(
+      white: 0.24,
+      orange: 0.38,
+      yellow: 0.44,
+      dark: 0.08,
+      gray: 0.06,
+      brown: 0.18,
+      spots: 0.03,
+      sat: 0.4,
+    ),
+  ),
+  Morph(
+    id: 'charcoal',
+    nameKo: '차콜',
+    nameEn: 'Charcoal',
+    category: MorphCategory.genetic,
+    inheritance: Inheritance.recessive,
+    inheritanceKo: '열성 (어두운 회색 바탕, 근사)',
+    description:
+        '숯처럼 어두운 회색 바탕입니다. 아잔틱보다 웜톤이 조금 남고, 팬텀보다 패턴이 더 읽힙니다. 열성으로 추적하는 브리더가 많아 헷 차콜을 따로 둡니다.',
+    look: '숯회색 바탕, 패턴은 남지만 채도가 낮음',
+    assetImage: _asset('phantom'),
+    aliases: ['차콜', 'charcoal'],
+    genes: {GeneKey.charcoal: 2},
+    price: PriceBand(min: 200000, max: 850000),
+    rarity: 4,
+    signature: ImageFeatures.signature(
+      white: 0.1,
+      orange: 0.04,
+      yellow: 0.04,
+      dark: 0.62,
+      gray: 0.48,
+      brown: 0.2,
+      spots: 0.06,
+      sat: 0.16,
+    ),
+  ),
+  Morph(
+    id: 'lavender',
+    nameKo: '라벤더',
+    nameEn: 'Lavender',
+    category: MorphCategory.color,
+    inheritance: Inheritance.polygenic,
+    inheritanceKo: '다지성 (보라·회보라 발색)',
+    description:
+        '회색에 보라·라일락 톤이 감도는 발색입니다. 단일 유전자가 아니라 선발로 쌓이며, 아잔틱이나 하이포와 겹치면 더 분명해집니다.',
+    look: '회보라·라일락 톤, 채도가 낮음',
+    assetImage: _asset('axanthic'),
+    aliases: ['라벤더', 'lavender', '라일락'],
+    traits: {TraitKey.lavender: 1},
+    price: PriceBand(min: 200000, max: 900000),
+    rarity: 3,
+    signature: ImageFeatures.signature(
+      white: 0.2,
+      orange: 0.08,
+      yellow: 0.06,
+      dark: 0.28,
+      gray: 0.42,
+      brown: 0.16,
+      spots: 0.04,
+      sat: 0.2,
+    ),
+  ),
+  Morph(
+    id: 'chocolate',
+    nameKo: '초콜릿',
+    nameEn: 'Chocolate',
+    category: MorphCategory.color,
+    inheritance: Inheritance.polygenic,
+    inheritanceKo: '다지성 (초콜릿 브라운)',
+    description:
+        '카카오·밀크초코 같은 따뜻한 갈색 바탕입니다. 카푸치노보다 유전자로 확정되지 않은 발색이라 선발 교배로 진해집니다.',
+    look: '따뜻한 초콜릿 브라운, 오렌지 언저리',
+    assetImage: _asset('cappuccino'),
+    aliases: ['초콜릿', '초코', 'chocolate', 'choc'],
+    traits: {TraitKey.chocolate: 1},
+    price: PriceBand(min: 150000, max: 600000),
+    rarity: 3,
+    signature: ImageFeatures.signature(
+      white: 0.08,
+      orange: 0.32,
+      yellow: 0.1,
+      dark: 0.42,
+      gray: 0.08,
+      brown: 0.72,
+      spots: 0.04,
+      sat: 0.38,
+    ),
+  ),
+  Morph(
+    id: 'moonglow',
+    nameKo: '문글로우',
+    nameEn: 'Moonglow',
+    category: MorphCategory.color,
+    inheritance: Inheritance.polygenic,
+    inheritanceKo: '다지성 (고화이트)',
+    description:
+        '달빛처럼 화이트 커버리지가 넓은 고화이트 표현형입니다. 릴리 화이트와 달리 확정 유전자가 아니라, 선발로 화이트를 쌓은 개체에 붙는 이름입니다.',
+    look: '몸 대부분을 덮는 밝은 화이트·크림',
+    assetImage: _asset('lilly-white'),
+    aliases: ['문글로우', 'moonglow', '문 글로우'],
+    traits: {TraitKey.moonglow: 1, TraitKey.harlequin: 0.5},
+    price: PriceBand(min: 300000, max: 1500000),
+    rarity: 4,
+    signature: ImageFeatures.signature(
+      white: 0.72,
+      orange: 0.1,
+      yellow: 0.12,
+      dark: 0.06,
+      gray: 0.1,
+      brown: 0.08,
+      spots: 0.02,
+      sat: 0.3,
+    ),
+  ),
+  Morph(
+    id: 'white-wall',
+    nameKo: '화이트월',
+    nameEn: 'White Wall',
+    category: MorphCategory.pattern,
+    inheritance: Inheritance.polygenic,
+    inheritanceKo: '다지성 (옆구리 화이트)',
+    description:
+        '옆구리가 하얀 벽처럼 막힌 패턴입니다. 할리퀸 커버리지가 옆구리에 집중된 형태로, 등보다 사이드 화이트가 뚜렷할 때 부릅니다.',
+    look: '옆구리를 따라 이어진 넓은 화이트 밴드',
+    assetImage: _asset('extreme-harlequin'),
+    aliases: ['화이트월', '화이트 월', 'whitewall', 'white wall'],
+    traits: {TraitKey.whiteWall: 1, TraitKey.harlequin: 0.75},
+    price: PriceBand(min: 220000, max: 950000),
+    rarity: 3,
+    signature: ImageFeatures.signature(
+      white: 0.58,
+      orange: 0.16,
+      yellow: 0.22,
+      dark: 0.18,
+      gray: 0.08,
+      brown: 0.2,
+      spots: 0.04,
+      sat: 0.42,
+    ),
+  ),
+  Morph(
+    id: 'emptyback',
+    nameKo: '엠티백',
+    nameEn: 'Emptyback',
+    category: MorphCategory.pattern,
+    inheritance: Inheritance.polygenic,
+    inheritanceKo: '다지성 (등판이 비어 보임)',
+    description:
+        '등 가운데가 비어 있고 무늬가 가장자리로 밀린 패턴입니다. 익스트림 할리퀸의 한 형태로 보기도 하며, 등판 대비가 클수록 가치가 있습니다.',
+    look: '등 중앙은 단색, 가장자리에 밝은 무늬',
+    assetImage: _asset('extreme-harlequin'),
+    aliases: ['엠티백', '엠프티백', 'emptyback', 'empty back'],
+    traits: {TraitKey.emptyback: 1, TraitKey.harlequin: 0.7},
+    price: PriceBand(min: 250000, max: 1100000),
+    rarity: 4,
+    signature: ImageFeatures.signature(
+      white: 0.5,
+      orange: 0.14,
+      yellow: 0.48,
+      dark: 0.14,
+      gray: 0.06,
+      brown: 0.16,
+      spots: 0.03,
+      sat: 0.46,
+    ),
+  ),
 ];
 
 /// Het-only breeding options (`HET_OPTIONS`).
@@ -608,6 +929,36 @@ const hetOptions = <HetOption>[
     nameKo: '헷 팬텀',
     genes: {GeneKey.phantom: 1},
     aliases: ['헷팬텀', 'hetphantom'],
+  ),
+  HetOption(
+    id: 'het-hypo',
+    nameKo: '헷 하이포',
+    genes: {GeneKey.hypo: 1},
+    aliases: ['헷하이포', 'hethypo'],
+  ),
+  HetOption(
+    id: 'het-charcoal',
+    nameKo: '헷 차콜',
+    genes: {GeneKey.charcoal: 1},
+    aliases: ['헷차콜', 'hetcharcoal'],
+  ),
+  HetOption(
+    id: 'het-sable',
+    nameKo: '헷 세이블',
+    genes: {GeneKey.sable: 1},
+    aliases: ['헷세이블', 'hetsable'],
+  ),
+  HetOption(
+    id: 'het-lilly',
+    nameKo: '헷 릴리',
+    genes: {GeneKey.lillyWhite: 1},
+    aliases: ['헷릴리', '헷릴리화이트', 'hetlilly', 'hetlily'],
+  ),
+  HetOption(
+    id: 'het-dunkel',
+    nameKo: '헷 던켈',
+    genes: {GeneKey.dunkel: 1},
+    aliases: ['헷던켈', 'hetdunkel'],
   ),
 ];
 

@@ -4,7 +4,7 @@ import '../data/morph_catalog.dart';
 
 /// Crested gecko inheritance rules, ported from `js/engine.js`.
 ///
-/// Confirmed genes (Lilly White, Axanthic, Phantom, Cappuccino) are resolved
+/// Confirmed genes (Lilly White, Axanthic, Phantom, Cappuccino, Sable and others) are resolved
 /// with real Punnett squares. Pattern traits such as harlequin, pinstripe and
 /// dalmatian are polygenic, so those percentages are deliberately approximate —
 /// the same caveat the web version shows in its footer.
@@ -79,6 +79,11 @@ abstract final class Genetics {
     final ax = genes[GeneKey.axanthic] ?? 0;
     final ph = genes[GeneKey.phantom] ?? 0;
     final cap = genes[GeneKey.cappuccino] ?? 0;
+    final sb = genes[GeneKey.sable] ?? 0;
+    final ss = genes[GeneKey.softScale] ?? 0;
+    final dk = genes[GeneKey.dunkel] ?? 0;
+    final hy = genes[GeneKey.hypo] ?? 0;
+    final ch = genes[GeneKey.charcoal] ?? 0;
 
     final parts = <String>[];
 
@@ -89,12 +94,20 @@ abstract final class Genetics {
       parts.add('팬텀 프라푸치노');
     } else if (lw == 1 && cap == 1) {
       parts.add('프라푸치노');
+    } else if (lw == 1 && sb == 1) {
+      parts.add('세이블 릴리');
     } else if (lw == 1 && ax == 2) {
       parts.add('릴리 아잔틱');
     } else if (lw == 1 && ph == 2) {
       parts.add('팬텀 릴리');
     } else if (cap == 2) {
       parts.add('슈퍼 카푸치노');
+    } else if (sb == 2) {
+      parts.add('슈퍼 세이블');
+    } else if (ss == 2) {
+      parts.add('슈퍼 소프트스케일');
+    } else if (dk == 2) {
+      parts.add('슈퍼 던켈');
     } else if (cap == 1 && ph == 2) {
       parts.add('팬텀 카푸치노');
     } else if (cap == 1 && ax == 2) {
@@ -103,10 +116,20 @@ abstract final class Genetics {
       parts.add('릴리 화이트');
     } else if (cap == 1) {
       parts.add('카푸치노');
+    } else if (sb == 1) {
+      parts.add('세이블');
+    } else if (ss == 1) {
+      parts.add('소프트스케일');
+    } else if (dk == 1) {
+      parts.add('던켈');
     } else if (ax == 2) {
       parts.add('아잔틱');
     } else if (ph == 2) {
       parts.add('팬텀');
+    } else if (hy == 2) {
+      parts.add('하이포');
+    } else if (ch == 2) {
+      parts.add('차콜');
     }
 
     double t(String key) => traits[key] ?? 0;
@@ -133,9 +156,16 @@ abstract final class Genetics {
     if (t(TraitKey.tiger) > 0.5 && t(TraitKey.halloween) < 0.55) {
       parts.add('타이거');
     }
+    if (t(TraitKey.lavender) > 0.55) parts.add('라벤더');
+    if (t(TraitKey.chocolate) > 0.55) parts.add('초콜릿');
+    if (t(TraitKey.moonglow) > 0.55) parts.add('문글로우');
+    if (t(TraitKey.whiteWall) > 0.55) parts.add('화이트월');
+    if (t(TraitKey.emptyback) > 0.55) parts.add('엠티백');
 
     if (ax == 1) parts.add('100% het 아잔틱');
     if (ph == 1) parts.add('100% het 팬텀');
+    if (hy == 1) parts.add('100% het 하이포');
+    if (ch == 1) parts.add('100% het 차콜');
 
     final unique = parts.toSet().toList();
     final name = unique.isEmpty ? '노멀 (유전자 비발현)' : unique.join(' · ');
@@ -144,8 +174,14 @@ abstract final class Genetics {
       name: name,
       percent: percent,
       imageId: _pickImage(genes, traits, unique),
-      detail: cap == 2 ? '슈퍼 카푸치노(멜라니스틱)는 콧구멍·척추 기형 위험이 큽니다.' : '',
-      caution: cap == 2,
+      detail: cap == 2
+          ? '슈퍼 카푸치노(멜라니스틱)는 콧구멍·척추 기형 위험이 큽니다.'
+          : ss == 2
+          ? '슈퍼 소프트스케일은 탈피·피부 문제가 보고되어 있습니다.'
+          : dk == 2
+          ? '슈퍼 던켈은 카푸치노 슈퍼폼과 비슷하게 건강 이슈가 있습니다.'
+          : '',
+      caution: cap == 2 || ss == 2 || dk == 2,
       genes: genes,
     );
   }
@@ -160,12 +196,24 @@ abstract final class Genetics {
     if (joined.contains('프라푸치노')) return 'frappuccino';
     if (joined.contains('릴리 아잔틱')) return 'lilly-axanthic';
     if (joined.contains('팬텀 릴리')) return 'phantom-lilly';
-    if (joined.contains('슈퍼 카푸')) return 'cappuccino';
+    if (joined.contains('슈퍼 카푸') || joined.contains('카푸치노')) {
+      return 'cappuccino';
+    }
+    if (joined.contains('세이블')) return 'sable';
+    if (joined.contains('소프트스케일')) return 'soft-scale';
+    if (joined.contains('던켈')) return 'dunkel';
+    if (joined.contains('하이포')) return 'hypo';
+    if (joined.contains('차콜')) return 'charcoal';
 
     if ((genes[GeneKey.lillyWhite] ?? 0) == 1) return 'lilly-white';
     if ((genes[GeneKey.cappuccino] ?? 0) >= 1) return 'cappuccino';
+    if ((genes[GeneKey.sable] ?? 0) >= 1) return 'sable';
+    if ((genes[GeneKey.softScale] ?? 0) >= 1) return 'soft-scale';
+    if ((genes[GeneKey.dunkel] ?? 0) >= 1) return 'dunkel';
     if ((genes[GeneKey.axanthic] ?? 0) == 2) return 'axanthic';
     if ((genes[GeneKey.phantom] ?? 0) == 2) return 'phantom';
+    if ((genes[GeneKey.hypo] ?? 0) == 2) return 'hypo';
+    if ((genes[GeneKey.charcoal] ?? 0) == 2) return 'charcoal';
 
     double t(String key) => traits[key] ?? 0;
     if (t(TraitKey.halloween) > 0.55) return 'halloween';
@@ -178,6 +226,11 @@ abstract final class Genetics {
     if (t(TraitKey.harlequin) > 0.45) return 'harlequin';
     if (t(TraitKey.flame) > 0.5) return 'flame';
     if (t(TraitKey.tiger) > 0.5) return 'tiger';
+    if (t(TraitKey.moonglow) > 0.55) return 'moonglow';
+    if (t(TraitKey.whiteWall) > 0.55) return 'white-wall';
+    if (t(TraitKey.emptyback) > 0.55) return 'emptyback';
+    if (t(TraitKey.lavender) > 0.55) return 'lavender';
+    if (t(TraitKey.chocolate) > 0.55) return 'chocolate';
     return 'normal';
   }
 
@@ -275,6 +328,31 @@ abstract final class Genetics {
     if (any(TraitKey.tiger)) {
       push('타이거 / 브린들', both(TraitKey.tiger) ? 0.65 : 0.4, 'tiger', '');
     }
+    if (any(TraitKey.lavender)) {
+      push(
+        '라벤더',
+        both(TraitKey.lavender) ? 0.6 : 0.32,
+        'lavender',
+        '발색은 선발로 진해집니다.',
+      );
+    }
+    if (any(TraitKey.chocolate)) {
+      push('초콜릿', both(TraitKey.chocolate) ? 0.62 : 0.34, 'chocolate', '');
+    }
+    if (any(TraitKey.moonglow)) {
+      push(
+        '문글로우',
+        both(TraitKey.moonglow) ? 0.58 : 0.3,
+        'moonglow',
+        '화이트 양은 개체 차가 큽니다.',
+      );
+    }
+    if (any(TraitKey.whiteWall)) {
+      push('화이트월', both(TraitKey.whiteWall) ? 0.6 : 0.33, 'white-wall', '');
+    }
+    if (any(TraitKey.emptyback)) {
+      push('엠티백', both(TraitKey.emptyback) ? 0.55 : 0.28, 'emptyback', '');
+    }
 
     rows.sort((x, y) => y.percent.compareTo(x.percent));
     return rows;
@@ -305,6 +383,24 @@ abstract final class Genetics {
           level: WarningLevel.warn,
           title: '카푸치노 × 카푸치노',
           text: '슈퍼 카푸치노(멜라니스틱)가 25%입니다. 호흡기·척추 기형 보고가 있어 권장하지 않습니다.',
+        ),
+      );
+    }
+    if (a.gene(GeneKey.softScale) >= 1 && b.gene(GeneKey.softScale) >= 1) {
+      warnings.add(
+        const BreedingWarning(
+          level: WarningLevel.warn,
+          title: '소프트스케일 × 소프트스케일',
+          text: '슈퍼 소프트스케일이 25%입니다. 탈피·피부 문제가 보고되어 권장하지 않습니다.',
+        ),
+      );
+    }
+    if (a.gene(GeneKey.dunkel) >= 1 && b.gene(GeneKey.dunkel) >= 1) {
+      warnings.add(
+        const BreedingWarning(
+          level: WarningLevel.warn,
+          title: '던켈 × 던켈',
+          text: '슈퍼 던켈이 25%입니다. 카푸치노 슈퍼폼과 비슷한 건강 이슈가 있어 주의합니다.',
         ),
       );
     }

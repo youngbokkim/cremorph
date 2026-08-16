@@ -25,9 +25,9 @@ ReferencePhoto photo(
 
 void main() {
   group('catalog integrity', () {
-    test('holds all 18 built-in morphs with unique ids', () {
-      expect(morphCatalog, hasLength(18));
-      expect(morphCatalog.map((m) => m.id).toSet(), hasLength(18));
+    test('holds all built-in morphs with unique ids', () {
+      expect(morphCatalog, hasLength(28));
+      expect(morphCatalog.map((m) => m.id).toSet(), hasLength(28));
     });
 
     test('every morph has a bundled image, signature and description', () {
@@ -145,12 +145,12 @@ void main() {
 
     test('an unrecognised name becomes its own community morph', () {
       final snapshot = ReferencePhotoRepository.mergeCatalog([
-        photo('우리집 초코', id: 'c'),
+        photo('우리집 별이', id: 'c'),
       ]);
 
       final community = snapshot.communityMorphs;
       expect(community, hasLength(1));
-      expect(community.single.nameKo, '우리집 초코');
+      expect(community.single.nameKo, '우리집 별이');
       expect(community.single.category, MorphCategory.custom);
       expect(community.single.isCustom, isTrue);
       expect(community.single.primaryImage, 'https://example.test/c.jpg');
@@ -159,9 +159,9 @@ void main() {
 
     test('several photos of the same unknown name collapse into one morph', () {
       final snapshot = ReferencePhotoRepository.mergeCatalog([
-        photo('우리집 초코', id: 'c1'),
-        photo('우리집 초코', id: 'c2'),
-        photo('우리집 초코', id: 'c3'),
+        photo('우리집 별이', id: 'c1'),
+        photo('우리집 별이', id: 'c2'),
+        photo('우리집 별이', id: 'c3'),
       ]);
       expect(snapshot.communityMorphs, hasLength(1));
       expect(snapshot.communityMorphs.single.extraImageUrls, hasLength(3));

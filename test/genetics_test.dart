@@ -96,6 +96,23 @@ void main() {
     expect(result.geneOutcomes.single.percent, 100);
   });
 
+  test('sable × sable splits like other incomplete dominants', () {
+    final sable = getMorph('sable')!;
+    final result = Genetics.breed(
+      BreedingProfile.fromMorph(sable),
+      BreedingProfile.fromMorph(sable),
+    );
+    expect(outcomeNamed(result, '슈퍼 세이블')?.percent, 25);
+    expect(outcomeNamed(result, '세이블')?.percent, 50);
+  });
+
+  test('het hypo × het hypo gives 25% visual hypo', () {
+    final het = BreedingProfile.empty().withHet(GeneKey.hypo);
+    final result = Genetics.breed(het, het);
+    expect(outcomeNamed(result, '하이포')?.percent, 25);
+    expect(outcomeNamed(result, '노멀 (유전자 비발현)')?.percent, 25);
+  });
+
   test('het axanthic × het axanthic gives 25% visual axanthic', () {
     final het = BreedingProfile.empty().withHet(GeneKey.axanthic);
     final result = Genetics.breed(het, het);
